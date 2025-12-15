@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Calculator</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --btn:#1f2937; --btn2:#374151; --text:#e5e7eb; --accent:#22c55e; --warn:#ef4444;
+    }
+    body.light{--bg:#f3f4f6; --panel:#ffffff; --btn:#e5e7eb; --btn2:#d1d5db; --text:#111827;}
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto}
+    body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);display:grid;place-items:center}
+    .app{width:min(980px,96vw);background:var(--panel);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.35);display:grid;grid-template-columns:1.2fr .8fr;gap:12px;padding:12px}
+    @media(max-width:820px){.app{grid-template-columns:1fr}}
+    .calc{display:grid;grid-template-rows:auto 1fr}
+    .top{display:flex;gap:8px;align-items:center}
+    .display{flex:1;background:#00000040;border-radius:12px;padding:10px}
+    .display .expr{opacity:.8;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .display .res{font-size:28px;font-weight:700;text-align:right}
+    .toggles button{background:var(--btn);color:var(--text);border:none;border-radius:10px;padding:8px 10px;cursor:pointer}
+    .keys{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+    .keys button{background:var(--btn);color:var(--text);border:none;border-radius:12px;padding:14px;font-size:16px;cursor:pointer;transition:.15s}
+    .keys button:hover{transform:translateY(-1px);filter:brightness(1.05)}
+    .keys .op{background:var(--btn2)}
+    .keys .accent{background:var(--accent);color:#052e16;font-weight:700}
+    .keys .warn{background:var(--warn)}
+    .history{background:#00000030;border-radius:12px;padding:10px;display:flex;flex-direction:column}
+    .history h3{margin:4px 0 8px 0;font-size:16px}
+    .hist{flex:1;overflow:auto;font-size:14px}
+    .hist div{padding:6px;border-bottom:1px dashed #00000040}
+  </style>
+</head>
+<body class="dark">
+  <div class="app">
+    <div class="calc">
+      <div class="top">
+        <div class="display">
+          <div class="expr" id="expr"></div>
+          <div class="res" id="res">0</div>
+        </div>
+        <div class="toggles">
+          <button id="mode">🌙</button>
+          <button id="deg">DEG</button>
+        </div>
+      </div>
+      <div class="keys">
+        <button class="warn" data-k="AC">AC</button>
+        <button class="op" data-k="C">C</button>
+        <button class="op" data-k="⌫">⌫</button>
+        <button class="op" data-k="%">%</button>
+        <button class="op" data-k="(">(</button>
+        <button class="op" data-k=")">)</button>
+
+        <button class="op" data-k="sin">sin</button>
+        <button class="op" data-k="cos">cos</button>
+        <button class="op" data-k="tan">tan</button>
+        <button class="op" data-k="log">log</button>
+        <button class="op" data-k="ln">ln</button>
+        <button class="op" data-k="!">n!</button>
+
+        <button data-k="7">7</button>
+        <button data-k="8">8</button>
+        <button data-k="9">9</button>
+        <button class="op" data-k="/">÷</button>
+        <button class="op" data-k="^">xʸ</button>
+        <button class="op" data-k="√">√</button>
+
+        <button data-k="4">4</button>
+        <button data-k="5">5</button>
+        <button data-k="6">6</button>
+        <button class="op" data-k="*">×</button>
+        <button class="op" data-k="π">π</button>
+        <button class="op" data-k="e">e</button>
+
+        <button data-k="1">1</button>
+        <button data-k="2">2</button>
+        <button data-k="3">3</button>
+        <button class="op" data-k="-">−</button>
+        <button class="op" data-k="x2">x²</button>
+        <button class="op" data-k="x3">x³</button>
+
+        <button data-k="0">0</button>
+        <button data-k=".">.</button>
+        <button class="op" data-k="+">+</button>
+        <button class="accent" style="grid-column: span 3" data-k="=">=</button>
+      </div>
+    </div>
+
+    <div class="history">
+      <h3>History</h3>
+      <div class="hist" id="hist"></div>
+    </div>
+  </div>
+
+<script>
+let expr='',deg=true;
+const E=e=>document.getElementById(e);
+const ex=E('expr'), rs=E('res'), hist=E('hist');
+function update(){ex.textContent=expr; try{ rs.textContent=expr?calc(expr):'0'; }catch{ rs.textContent='Error'; }}
+function fact(n){n=Math.floor(n); if(n<0)throw 0; let r=1; for(let i=2;i<=n;i++)r*=i; return r}
+function calc(s){
+  let t=s
+   .replace(/÷/g,'/')
+   .replace(/×/g,'*')
+   .replace(/π/g,'Math.PI')
+   .replace(/e/g,'Math.E')
+   .replace(/√/g,'Math.sqrt')
+   .replace(/sin|cos|tan/g,m=>`Math.${m}`)
+   .replace(/log/g,'Math.log10')
+   .replace(/ln/g,'Math.log')
+   .replace(/(\d+)!/g,'fact($1)')
+   .replace(/\^/g,'**');
+  if(deg) t=t.replace(/Math\.(sin|cos|tan)\(([^)]+)\)/g,(m,f,a)=>`Math.${f}(${a}*Math.PI/180)`);
+  return Function('fact','return '+t)(fact);
+}
+
+document.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.k;
+  if(k==='AC'){expr=''; rs.textContent='0'}
+  else if(k==='C'){expr=expr.slice(0,-1)}
+  else if(k==='⌫'){expr=expr.slice(0,-1)}
+  else if(k==='='){try{const r=calc(expr); hist.prepend(Object.assign(document.createElement('div'),{textContent:`${expr} = ${r}`})); expr=''+r}catch{rs.textContent='Error'}}
+  else if(k==='x2'){expr+=`^2`}
+  else if(k==='x3'){expr+=`^3`}
+  else{expr+=k}
+  update();
+});
+E('mode').onclick=()=>{document.body.classList.toggle('light')}
+E('deg').onclick=()=>{deg=!deg; E('deg').textContent=deg?'DEG':'RAD'}
+</script>
+</body>
+  </html>
+  
